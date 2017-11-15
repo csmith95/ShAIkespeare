@@ -26,6 +26,10 @@ class BigramModel:
         sentence = bigram
         for _ in range(numWords - 2):     # -2 because seed contains 2 words
             nextWord = weightedRandomChoice(self.bigramMap[bigram])
+            if random.randrange(100) < 20:
+                nextWord == 'NEWLINE'
+            if nextWord == 'NEWLINE':
+                nextWord = '\n'
             sentence += ' {}'.format(nextWord)
             bigram = bigram.split()[1] + ' {}'.format(nextWord)    # slide the window
 
