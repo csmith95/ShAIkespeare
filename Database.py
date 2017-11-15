@@ -1,14 +1,15 @@
 import re
-match = re.match(r"^.*\['(.*)'\].*$",str)
 
 class Database:
 
   def __init__(self, filename):
-  	startTag = '"CONTENT/'
-  	endTag = '/CONTENT"'
+  	startTag = 'CONTENT/'
+  	endTag = '/CONTENT'
   	with open(filename) as f:
-  		text = myfile.read().replace('\n', '')
-  		matches = re.findall(r"^.*startTag'(.*)'endTag.*$", text)
-        for m in matches:
-            print(m)
+  		text = re.sub(r'\s+', ' ', f.read())
+  		text = re.sub(r'\[.+\]', '', text)
+  		text = re.sub(r'[^a-zA-z\s\/]', '', text)
+  		matches = re.findall(r'{}(.*?){}'.format(startTag, endTag), text)
+  		self.corpus = [m.split() for m in matches]
+
     

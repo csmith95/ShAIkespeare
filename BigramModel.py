@@ -3,34 +3,33 @@ import random, re
 
 class BigramModel:
 
-  def __init__(self, corpus):
-    """Initialize your data structures in the constructor.
-        |corpus| should be a list of lists where each entry is a sentence
-        and each sentence contains words of the sentence.
-    """
-    self.bigramMap = defaultdict(lambda : defaultdict(int))
-    self.train(corpus)
+    def __init__(self, corpus):
+        """Initialize your data structures in the constructor.
+            |corpus| should be a list of lists where each entry is a sentence
+            and each sentence contains words of the sentence.
+        """
+        self.bigramMap = defaultdict(lambda : defaultdict(int))
+        self.train(corpus)
 
-  def train(self, corpus):
-    """ Takes a corpus and trains your language model. 
-        Compute any counts or other corpus statistics in this function.
-    """  
+    def train(self, corpus):
+        """ Takes a corpus and trains your language model. 
+            Compute any counts or other corpus statistics in this function.
+        """  
+        for poem in corpus: 
+            for i in range(len(poem)-2):  
+                bigram = poem[i] + ' ' + poem[i+1]
+                self.bigramMap[bigram][poem[i+2]] += 1
 
-    for sentence in corpus.corpus: 
-        for i in range(len(sentence)-2):  
-            bigram = sentence[i] + ' ' + sentence[i+1]
-            self.bigramMap[bigram][sentence[i+2]] += 1
+    def generatePoem(self, numWords):
+        """ Generates a poem of length |numWords| """
+        bigram = random.choice(self.bigramMap.keys())    # get random initial seed
+        sentence = bigram
+        for _ in range(numWords - 2):     # -2 because seed contains 2 words
+            nextWord = weightedRandomChoice(self.bigramMap[bigram])
+            sentence += ' {}'.format(nextWord)
+            bigram = bigram.split()[1] + ' {}'.format(nextWord)    # slide the window
 
-def generatePoem(numWords):
-    """ Generates a poem of length |numWords| """
-    bigram = random.choice(bigramMap.keys())    # get random initial seed
-    sentence = bigram
-    for _ in len(numWords - 2):     # -2 because seed contains 2 words
-        nextWord = weightedRandomChoice(bigramMap[seed])
-        sentence += ' {}'.format(nextWord)
-        bigram = bigram.split()[1:] + ' {}'.format(nextWord)    # slide the window
-
-    return sentence
+        return sentence
 
 # Function: Weighted Random Choice
 # --------------------------------
