@@ -6,7 +6,8 @@ class Database:
   	startTag = 'CONTENT/'
   	endTag = '/CONTENT'
   	with open(filename) as f:
-  		text = re.sub(r'\s+', ' ', f.read())
+  		text = re.sub(r'\n+', ' NEWLINE ', f.read())
+  		text = re.sub(r'\s+', ' ', text)
   		text = re.sub(r'\[.+\]', '', text)
   		text = re.sub(r'[^a-zA-z\s\/]', '', text)
   		matches = re.findall(r'{}(.*?){}'.format(startTag, endTag), text)
