@@ -20,16 +20,17 @@ class BigramModel:
                 bigram = poem[i] + ' ' + poem[i+1]
                 self.bigramMap[bigram][poem[i+2]] += 1
 
-    def generatePoem(self, numWords):
+    def generatePoem(self):
         """ Generates a poem of length |numWords| """
         bigram = random.choice(self.bigramMap.keys())    # get random initial seed
         sentence = bigram
-        for _ in range(numWords - 2):     # -2 because seed contains 2 words
+        while (True):     # -2 because seed contains 2 words
             nextWord = weightedRandomChoice(self.bigramMap[bigram])
+            if nextWord == 'EOF': break
             sentence += ' {}'.format(nextWord)
             bigram = bigram.split()[1] + ' {}'.format(nextWord)    # slide the window
 
-        return sentence
+        return re.sub(r'NEWLINE', '\n', sentence)
 
 # Function: Weighted Random Choice
 # --------------------------------
@@ -52,6 +53,6 @@ def weightedRandomChoice(weightDict):
         if runningTotal > key:
             chosenIndex = i
             return elems[chosenIndex]
-    raise Exception('Should not reach here')
+    return 'EOF'
 
 
