@@ -18,6 +18,10 @@ def rhymes_with(word):
     #and also don't return the original word
     return [x.split('(')[0] for x in words.split() if x.lower() != word.lower()]
 
+def rhymes(word1, word2):
+    if word2 in rhymes_with(word1) or word1 in rhymes_with(word2): return True
+    return False
+
 def main():
     for word in sys.argv[1:]:
         print '%s: %s' % (word, ', '.join(rhymes_with(word)))
