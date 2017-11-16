@@ -12,7 +12,7 @@ class Database:
   		text = re.sub(r'\n+', ' NEWLINE ', f.read())	# encode newline as special token
   		text = re.sub(r'\s+', ' ', text)				# clean up whitespace
   		text = re.sub(r'\[.+?\]', '', text)				# strip [CHORUS] and other song tags
-  		text = re.sub(r'[,\.]', '', text) 			# remove some non-alphanumeric chars
+  		text = re.sub(r'[,\.;""\(\):]', '', text) 			# remove some non-alphanumeric chars
   		matches = re.findall(r'({})(.+?)({}).*?{}(.*?){}'.format(startAgeTag, endAgeTag, startTag, endTag), text)
   		for m in matches:
   			if m[1] == 'Renaissance':
