@@ -75,7 +75,7 @@ class BigramModel:
 
         def prune(lines, candidateLines):
             if len(lines) <= 1:
-                return [{tuple(line): 1.0} for line in candidateLines[0:8]]   # no constraints to satisfy -- return first 5 with weight 1.0
+                return [{tuple(line): 1.0} for line in candidateLines[0:8]]   # no constraints to satisfy -- return first 8
 
             options = {}
             for d in lines[-2]:
@@ -87,30 +87,48 @@ class BigramModel:
                         lastWord = candidate[-1]
                         for syn in getSynonyms(lastWord):
                             if syn.split()[-1] in rhymes:
-                                options[tuple(candidate[:-1] + [syn])] = weight * 2.0
-
+                                newLine = tuple(candidate[:-1] + [syn])
+                                options[newLine] = weight * 2.0
+                                rhymingLines[newLine].append(line)
 
                         if tuple(candidate) not in options:
                             options[tuple(candidate)] = 1.0
 
             return [{t[0]: t[1]} for t in sorted(options.items(), key=operator.itemgetter(1))[-8:]]
 
-        lines = []  # list of {line -> weight}, maintains top 5 candidates for each line
+        lines = []  # list of {line -> weight}, maintains top 8 candidates for each line
+        rhymingLines = defaultdict(lambda: [])   # dict from line to list of rhyming lines
         n = 0
         while (True):
             candidateLines = self.generateCandidateLines(20)    # generate 20 sentences using a random bigram seed
-            weightedLines = prune(lines, candidateLines)    # returns {line -> weight} dictionary of length 5
+            weightedLines = prune(lines, candidateLines)    # returns {line -> weight} dictionary of length 8
             lines.append(weightedLines)
             n += 1
             if n == 12: break
 
-        i = 0
-        for weighted in lines:
-            i += 1
-            print()
-            print("candidates for line {}:\n{} ".format(i, weighted))
+        def getMaxWeightLine(options):
+            for d in options:
+                maxWeight = 0.0
+                bestLine = None
+                for line, weight in d.items():
+                    if weight > maxWeight:
+                        maxWeight = weight
+                        bestLine = line
+            return bestLine
 
-        return '\n'.join(lines)
+        result = [getMaxWeightLine(lines[-1])]
+        result.insert(0, getMaxWeightLine(lines[-2]))
+        for i in range(10):
+            options = rhymingLines[result[1]]
+            if len(options) == 0:
+                # no rhyming lines -- choose max weight line
+                previousLine = getMaxWeightLine(lines[i-12-1])
+            else:
+                previousLine = random.choice(options)
+
+            result.insert(0, previousLine)
+
+        return '\n'.join([' '.join(line) for line in result])
 
 
 # Function: Weighted Random Choice
