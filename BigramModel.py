@@ -2,7 +2,7 @@ from collections import defaultdict
 import random, re, operator
 from pyrhyme.rhyme import rhymes_with
 from nltk.corpus import wordnet
-import prosodic as p
+# import prosodic as p
 
 class BigramModel:
 
