@@ -131,6 +131,11 @@ class BigramModel:
 
         return '\n'.join([' '.join(line) for line in result])
 
+    def syllableCount(line):
+        text = p.Text(line)
+        text.parse()
+        return len(text.syllables())
+
 
 # Function: Weighted Random Choice
 # --------------------------------
