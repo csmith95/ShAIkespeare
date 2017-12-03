@@ -136,6 +136,22 @@ class BigramModel:
         text.parse()
         return len(text.syllables())
 
+    def iambic(line, n):
+        w = 1
+        if syllableCount(line) != n*2:
+            return False
+        t = p.Text(line)
+        for i, syl in enumerate(t.syllables()):
+            syl.feature()
+            if i%2 == 1:
+                if syl.feature('prom.stress') != 1.0: w*=.9
+            if i%2 == 0:
+                if syl.feature('prom.stress') != 0.0: w*=.9
+        if w >= .6: return True
+        return False
+
+
+
 
 # Function: Weighted Random Choice
 # --------------------------------
