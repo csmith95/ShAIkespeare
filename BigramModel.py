@@ -139,7 +139,7 @@ class BigramModel:
     def iambic(line, n):
         w = 1
         if syllableCount(line) != n*2:
-            return 0
+            return .1
         t = p.Text(line)
         for i, syl in enumerate(t.syllables()):
             syl.feature()
