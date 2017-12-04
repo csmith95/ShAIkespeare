@@ -2,7 +2,7 @@ from collections import defaultdict
 import random, re, operator
 from pyrhyme.rhyme import rhymes_with
 from nltk.corpus import wordnet
-# import prosodic as p
+import prosodic as p
 
 class BigramModel:
 
@@ -138,7 +138,7 @@ class BigramModel:
 
     def iambic(line, n):
         w = 1
-        if syllableCount(line) != n*2:
+        if abs(syllableCount(line) - n*2) >= 1:
             return .1
         t = p.Text(line)
         for i, syl in enumerate(t.syllables()):
