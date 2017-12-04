@@ -37,26 +37,39 @@ class BigramModel:
 
     def generateCandidateLines(self, n):
 
-        candidates = []
-        line = []
-        for _ in range(n):
-
+        def randomSeed(bigramMap):
             while True:
                 bigram = random.choice(self.bigramMap.keys())    # get random initial seed
-                if not 'NEWLINE' in bigram.split(): break
+                if not 'NEWLINE' in bigram.split(): 
+                    return bigram
 
+        candidates = []
+        line = []
+        # each iteration of this loop appends a candidate line
+        for _ in range(n):
+
+            bigram = randomSeed(self.bigramMap)
             line = bigram.split()
+            count = self.syllableCount(bigram)
             while True:
                 nextWord = weightedRandomChoice(self.bigramMap[bigram])
 
-                if nextWord == 'EOF' or nextWord == 'NEWLINE':
+                # add if count is in the neighborhood of 10 syllables
+                # number of syllables can change when we sub in synonyms 
+                # trying to enforce rhyme/meter
+                if count >= 9 and count <= 11: 
                     candidates.append(line)
                     line = []
                     break
 
+                if count > 11:  # overshot -- try again from start
+                    bigram = randomSeed(self.bigramMap)
+                    line = bigram.split()
+                    count = self.syllableCount(bigram)
+                    continue
+
                 line.append(nextWord)
-                # if len(line) > 3:
-                    # candidates.append(line)  # use subsentences as candidates for our constrained line function
+                count += self.syllableCount(nextWord)
                 bigram = bigram.split()[1] + ' {}'.format(nextWord)    # slide the window
 
         return candidates
@@ -74,9 +87,41 @@ class BigramModel:
             s = list(set(synonyms))
             return s
 
+        def makeIambic(self, line):
+
+            def recursiveMakeIambic(self, currentIndex, line):
+                # base case -- iambic or reached end of line
+                weight = self.iambic(line)
+                if weight >= 0.7 or currentIndex == len(line) - 1:
+                    return (line, weight)
+
+                # recurse on the words left
+                for syn in getSynonyms(line[currentIndex]):
+                    newLine = line[:currentIndex] + syn.split() + line[currentIndex+1:]
+                    option, weight = recursiveMakeIambic(currentIndex+1, newLine)
+                    if weight >= 0.7:
+                        return (option, weight)
+
+                return (None, 0.0)
+
+
+            # start
+            for index, word in enumerate(line[:-1]):  # try modify everything but last word (rhyming word)
+                option, weight = self.recursiveMakeIambic(index, line)
+                if weight >= 0.7:
+                    return (option, weight)
+
+            return (None, 0.0)
+
+
         def prune(lines, candidateLines):
+            options = {}
             if len(lines) <= 1:
-                return [{tuple(line): 1.0} for line in candidateLines[0:8]]   # no constraints to satisfy -- return first 8
+                for line in candidateLines:
+                    options[tuple(line)] = self.iambic(line)
+
+                # return 16 with highest weight
+                return [{t[0]: t[1]} for t in sorted(options.items(), key=operator.itemgetter(1))[-16:]]
 
             options = {}
             for d in lines[-2]:
@@ -88,21 +133,34 @@ class BigramModel:
                         lastWord = candidate[-1]
                         for syn in getSynonyms(lastWord):
                             if syn.split()[-1] in rhymes:
-                                newLine = tuple(candidate[:-1] + [syn])
-                                options[newLine] = weight * 2.0
-                                rhymingLines[newLine].append(line)
+                                newLine = candidate[:-1] + [syn]
+                                iambicWeight = self.iambic(line)
+                                if iambicWeight >= 0.7:     # 0.7 is almost perfectly iambic
+                                    options[tuple(newLine)] = weight * 2.0  # * 2 for the rhyme
+                                else:
+                                    # try to make it more iambic
+                                    iambicLine, newIambicWeight = self.makeIambic(line)
+                                    if newIambicWeight > iambicWeight:   # if we improved iambic score at all, use this line
+                                        newLine = iambicLine
+                                        iambicWeight = newIambicWeight
+                                    
+                                    options[tuple(newLine)] = weight * iambicWeight * 2.0
+
+                                # keep pointer to previous lines that rhyme
+                                rhymingLines[tuple(newLine)].append(line)
 
                         if tuple(candidate) not in options:
-                            options[tuple(candidate)] = 1.0
+                            options[tuple(candidate)] = 2.0 if self.iambic(line) else 1.0
 
-            return [{t[0]: t[1]} for t in sorted(options.items(), key=operator.itemgetter(1))[-8:]]
+            # return 16 with highest weight
+            return [{t[0]: t[1]} for t in sorted(options.items(), key=operator.itemgetter(1))[-16:]]
 
         lines = []  # list of {line -> weight}, maintains top 8 candidates for each line
         rhymingLines = defaultdict(lambda: [])   # dict from line to list of rhyming lines
         n = 0
         while (True):
-            candidateLines = self.generateCandidateLines(20)    # generate 20 sentences using a random bigram seed
-            weightedLines = prune(lines, candidateLines)    # returns {line -> weight} dictionary of length 8
+            candidateLines = self.generateCandidateLines(40)    # generate 40 lines using a random bigram seed
+            weightedLines = prune(lines, candidateLines)    # returns {line -> weight} dictionary w/ 16 lines
             lines.append(weightedLines)
             n += 1
             if n == 12: break
@@ -131,10 +189,15 @@ class BigramModel:
 
         return '\n'.join([' '.join(line) for line in result])
 
-    def syllableCount(line):
+    def syllableCount(self, line):
+        print(line)
         text = p.Text(line)
         text.parse()
         return len(text.syllables())
+
+    def iambic(self, line):
+        joined = ' '.join(line)
+        return self.syllableCount(joined) == 10
 
 
 # Function: Weighted Random Choice
@@ -158,4 +221,5 @@ def weightedRandomChoice(weightDict):
         if runningTotal > key:
             chosenIndex = i
             return elems[chosenIndex]
+
     return 'EOF'
