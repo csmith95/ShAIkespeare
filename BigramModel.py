@@ -79,6 +79,7 @@ class BigramModel:
                 return [{tuple(line): 1.0} for line in candidateLines[0:8]]   # no constraints to satisfy -- return first 8
 
             options = {}
+
             for d in lines[-2]:
                 for line, weight in d.items():
                     wordToMatch = line[-1]
