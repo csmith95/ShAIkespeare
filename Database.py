@@ -9,16 +9,14 @@ class Database:
   	startAgeTag = r'AGE/'
   	endAgeTag = r'/AGE'
   	with open(filename) as f:
-  		text = re.sub(r'\n+', ' NEWLINE ', f.read())	# encode newline as special token
+  		text = re.sub(r'\n+', ' ', f.read())
   		text = re.sub(r'\s+', ' ', text)				# clean up whitespace
   		text = re.sub(r'\[.+?\]', '', text)				# strip [CHORUS] and other song tags
-  		text = re.sub(r'[,\.;""\(\):]', '', text) 			# remove some non-alphanumeric chars
+  		text = re.sub(r'[-_,\.;""\(\):]', '', text) 			# remove some non-alphanumeric chars
   		matches = re.findall(r'({})(.+?)({}).*?{}(.*?){}'.format(startAgeTag, endAgeTag, startTag, endTag), text)
   		for m in matches:
   			if m[1] == 'Renaissance':
   				if random.randrange(1, 101) < 60: 
   					continue
-  			self.corpus.append(m[3].split() + ['EOF'])
-
-
-    
+			split_words = [x.lower() for x in m[3].split()]
+  			self.corpus.append(split_words + ['EOF'])

@@ -1,0 +1,3 @@
+- after a poem is generated, user can put in +1 or -1 for each line and for the entire poem, update count in dirichlet numerator
+- file to store initial bigram weights (corpus)
+- add words of poem back into corpus, update weights
