@@ -3,6 +3,8 @@ import random, re, operator
 from pyrhyme.rhyme import rhymes_with
 from nltk.corpus import wordnet
 import prosodic as p
+import json
+from nltk.stem import PorterStemmer
 
 class BigramModel:
     global syllableCount, iambic
@@ -12,17 +14,37 @@ class BigramModel:
             |corpus| should be a list of lists where each entry is a sentence
             and each sentence contains words of the sentence.
         """
-        self.bigramMap = defaultdict(lambda : defaultdict(int))
+        self.bigramMap = defaultdict(lambda : defaultdict(float))
+        self.generatedPoem = ""
+        self.ps = PorterStemmer()
         self.train(corpus)
 
     def train(self, corpus):
         """ Takes a corpus and trains your language model.
             Compute any counts or other corpus statistics in this function.
         """
-        for poem in corpus:
-            for i in range(len(poem)-2):
-                bigram = poem[i] + ' ' + poem[i+1]
-                self.bigramMap[bigram][poem[i+2]] += 1
+        if (self.readBigramInit() == None):
+            print("training like normal!")
+            # for poem in corpus:
+            for i in range(len(corpus)-2):
+                bigramStem = self.ps.stem(corpus[i]) + ' ' + self.ps.stem(corpus[i+1])
+                # bigram = corpus[i] + ' ' + corpus[i+1]
+                self.bigramMap[bigramStem][corpus[i+2]] += 0.5
+    
+    def readBigramInit(self):
+        try:
+            f = open('bigram_init-2.json')
+        except IOError:
+            print('file doesn\'t open')
+            return None
+        else:
+            print("reading in data from file!")
+            with f:
+                data = json.load(f)
+                print(type(data))
+                self.bigramMap = data
+            return 1
+        # pass
 
     def generateUnconstrainedPoem(self):
         """ Generates a poem of random length """
@@ -32,7 +54,7 @@ class BigramModel:
             nextWord = weightedRandomChoice(self.bigramMap[bigram])
             if nextWord == 'EOF': break
             sentence += ' {}'.format(nextWord)
-            bigram = bigram.split()[1] + ' {}'.format(nextWord)    # slide the window
+            bigram = bigram.split()[1] + ' {}'.format(self.ps.stem(nextWord))    # slide the window
 
         return re.sub(r'NEWLINE', '\n', sentence)
 
@@ -47,13 +69,14 @@ class BigramModel:
         candidates = []
         line = []
         # each iteration of this loop appends a candidate line
+        # print(self.bigramMap)
         for _ in range(n):
 
-            bigram = randomSeed(self.bigramMap)
-            line = bigram.split()
-            count = syllableCount(bigram)
+            bigramStem = randomSeed(self.bigramMap)
+            line = []
+            count = syllableCount(bigramStem)
             while True:
-                nextWord = weightedRandomChoice(self.bigramMap[bigram])
+                nextWord = weightedRandomChoice(self.bigramMap[bigramStem])
 
                 # add if count is in the neighborhood of 10 syllables
                 # number of syllables can change when we sub in synonyms 
@@ -71,7 +94,7 @@ class BigramModel:
 
                 line.append(nextWord)
                 count += syllableCount(nextWord)
-                bigram = bigram.split()[1] + ' {}'.format(nextWord)    # slide the window
+                bigramStem = bigramStem.split()[1] + ' {}'.format(self.ps.stem(nextWord))    # slide the window
 
         return candidates
 
@@ -110,7 +133,7 @@ class BigramModel:
             #     return (None, 0.0)
 
             # start
-            print(line)
+            # print(line)
             for index, word in enumerate(line[:-1]):  # try modify everything but last word (rhyming word)
                 # option, weight = recursiveMakeIambic(index, line)
                 i = 0
@@ -185,6 +208,7 @@ class BigramModel:
 
         lines = []  # list of {line -> weight}, maintains top 8 candidates for each line
         rhymingLines = defaultdict(lambda: [])   # dict from line to list of rhyming lines
+        
         for i in range(10):
             print("********* ", i)
             candidateLines = self.generateCandidateLines(16)    # generate 16 lines using a random bigram seed
@@ -207,7 +231,8 @@ class BigramModel:
         print
         print(lines[-1])
         print 
-        for i in range(8):
+        print("num lines", len(lines))
+        for i in range(2):
             options = rhymingLines[result[1]]
             if len(options) == 0:
                 # no rhyming lines -- choose max weight line
@@ -217,6 +242,7 @@ class BigramModel:
 
             result.insert(0, previousLine)
 
+        self.generatedPoem = result
         return '\n'.join([' '.join(line) for line in result])
 
     def syllableCount(line):
@@ -239,6 +265,38 @@ class BigramModel:
                 if syl.feature('prom.stress') == 0.0: count += 1
 
         return float(count)/len(t.syllables())
+
+    def updateDirichlet(self, likeVector):
+        print(self.generatedPoem)
+        alpha = 1
+
+        for k in xrange(len(self.generatedPoem)):
+            line = self.generatedPoem[k]
+            # print(line)
+            for i in xrange(len(line)-2):
+                bigramStem = self.ps.stem(line[i]) + ' ' + self.ps.stem(line[i+1])
+                if bigramStem not in self.bigramMap:
+                    self.bigramMap[bigramStem] = {}
+                    # self.bigramMap[bigram] = {}
+                if line[i+2] not in self.bigramMap[bigramStem]:
+                    self.bigramMap[bigramStem][line[i+2]] = 0
+                currentVal = self.bigramMap[bigramStem][line[i+2]]
+                # print("values", self.bigramMap[bigramStem].values())
+                maxVal = max(self.bigramMap[bigramStem].values())
+                self.bigramMap[bigramStem][line[i+2]] += alpha*(likeVector[k] + maxVal)
+
+        # weights = []
+        # elems = []
+        # for elem in self.bigramMap:
+        #     weights.append(self.bigramMap[elem])
+        #     elems.append(elem)
+        # total = sum(weights)
+        self.writeInitialBigramFile()
+        return None
+
+    def writeInitialBigramFile(self):
+        with open('bigram_init-2.json', 'w') as file:
+            file.write(json.dumps(self.bigramMap))
 
 
 # Function: Weighted Random Choice
