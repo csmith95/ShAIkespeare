@@ -133,7 +133,6 @@ class BigramModel:
             #     return (None, 0.0)
 
             # start
-            # print(line)
             for index, word in enumerate(line[:-1]):  # try modify everything but last word (rhyming word)
                 # option, weight = recursiveMakeIambic(index, line)
                 i = 0
@@ -144,7 +143,7 @@ class BigramModel:
                     if weight >= 1.6:
                         return (newLine, weight)
                     i += 1
-                    if i == 4: break
+                    if i == 3: break
 
             return (None, 0.0)
 
@@ -208,8 +207,7 @@ class BigramModel:
 
         lines = []  # list of {line -> weight}, maintains top 8 candidates for each line
         rhymingLines = defaultdict(lambda: [])   # dict from line to list of rhyming lines
-        
-        for i in range(10):
+        for i in range(4):
             print("********* ", i)
             candidateLines = self.generateCandidateLines(16)    # generate 16 lines using a random bigram seed
             weightedLines = prune(lines, candidateLines)    # returns {line -> weight} dictionary w/ 16 lines
@@ -231,7 +229,6 @@ class BigramModel:
         print
         print(lines[-1])
         print 
-        print("num lines", len(lines))
         for i in range(2):
             options = rhymingLines[result[1]]
             if len(options) == 0:
